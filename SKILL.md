@@ -101,6 +101,7 @@ ACR_NAME=${ACR_NAME}
 ACR_LOGIN_SERVER=${ACR_NAME}.azurecr.io
 STORAGE_ACCOUNT=${STORAGE_ACCOUNT}
 KEY_VAULT=${KEY_VAULT}
+POSTGRES_FQDN=${POSTGRES_SERVER}.postgres.database.azure.com
 EOF
 echo "Config opgeslagen in ~/.azure-saas-deploy/config.env"
 ```
@@ -186,10 +187,15 @@ az deployment group create \
   --template-file templates/project.json \
   --parameters \
       projectName=$PROJECT_NAME \
+      domain=$DOMAIN \
       imageTag=latest \
       containerRegistryName=$ACR_NAME \
       containerRegistryPassword=$ACR_PASSWORD \
+      containerAppsEnvironmentName=$CONTAINER_APPS_ENV \
+      postgresServerName=$POSTGRES_SERVER \
       postgresAdminPassword=$PG_PASSWORD \
+      keyVaultName=$KEY_VAULT \
+      storageAccountName=$STORAGE_ACCOUNT \
       entraIdClientId=$ENTRA_CLIENT_ID \
       entraIdClientSecret=$ENTRA_CLIENT_SECRET \
       authSecret=$AUTH_SECRET
@@ -203,8 +209,30 @@ Gedeelde credentials worden **nooit** als GitHub Secret of ARM parameter meegege
 
 | Omgeving | Locatie | Mechanisme |
 |----------|---------|------------|
-| Lokaal | `~/.azure-saas-deploy/shared.env` | Geladen door `next.config.ts` |
+| Lokaal | `~/.azure-saas-deploy/shared.env` | Geladen door `next.config.ts` (zie snippet hieronder) |
 | Azure | Key Vault `$KEY_VAULT` | Container App Managed Identity |
+
+**`next.config.ts` snippet voor lokaal laden:**
+```typescript
+import { loadEnvConfig } from '@next/env'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+
+// Laad gedeelde env alleen lokaal, niet in productie
+if (process.env.NODE_ENV !== 'production') {
+  const sharedEnvPath = path.join(os.homedir(), '.azure-saas-deploy', 'shared.env')
+  if (fs.existsSync(sharedEnvPath)) {
+    const lines = fs.readFileSync(sharedEnvPath, 'utf-8').split('\n')
+    for (const line of lines) {
+      const [key, ...rest] = line.split('=')
+      if (key && !key.startsWith('#') && !(key in process.env)) {
+        process.env[key.trim()] = rest.join('=').trim()
+      }
+    }
+  }
+}
+```
 
 De ARM template (`project.json`) kent automatisch Key Vault leesrechten toe aan elke nieuwe Container App. Geen handmatige stap nodig per project.
 

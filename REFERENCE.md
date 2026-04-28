@@ -200,6 +200,10 @@ Gedeelde API-credentials komen **niet** als parameters — die worden opgehaald 
     },
     "authSecret": {
       "type": "securestring"
+    },
+    "domain": {
+      "type": "string",
+      "metadata": { "description": "Domeinnaam voor subdomeinen, bijv. example.com" }
     }
   },
   "variables": {
@@ -280,7 +284,7 @@ Gedeelde API-credentials komen **niet** als parameters — die worden opgehaald 
               "env": [
                 { "name": "NODE_ENV",                          "value": "production" },
                 { "name": "DATABASE_URL",                      "secretRef": "database-url" },
-                { "name": "AUTH_URL",                          "value": "[concat('https://', parameters('projectName'), '.<YOUR_DOMAIN>')]" },
+                { "name": "AUTH_URL",                          "value": "[concat('https://', parameters('projectName'), '.', parameters('domain'))]" },
                 { "name": "AUTH_SECRET",                       "secretRef": "auth-secret" },
                 { "name": "AUTH_MICROSOFT_ENTRA_ID_ID",        "value": "[parameters('entraIdClientId')]" },
                 { "name": "AUTH_MICROSOFT_ENTRA_ID_SECRET",    "secretRef": "entra-client-secret" },
@@ -329,7 +333,7 @@ Gedeelde API-credentials komen **niet** als parameters — die worden opgehaald 
     },
     "projectUrl": {
       "type": "string",
-      "value": "[concat('https://', parameters('projectName'), '.<YOUR_DOMAIN>')]"
+      "value": "[concat('https://', parameters('projectName'), '.', parameters('domain'))]"
     }
   }
 }
@@ -391,6 +395,7 @@ jobs:
           template: ./templates/project.json
           parameters: >
             projectName=${{ env.PROJECT_NAME }}
+            domain=${{ secrets.DOMAIN }}
             imageTag=${{ github.sha }}
             containerRegistryName=${{ secrets.ACR_USERNAME }}
             containerRegistryPassword=${{ secrets.ACR_PASSWORD }}
@@ -418,6 +423,7 @@ jobs:
 | `ACR_PASSWORD` | ACR admin password | `az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv` |
 | `RESOURCE_GROUP` | Resource group naam | Uit config |
 | `KEY_VAULT` | Key Vault naam | Uit config |
+| `DOMAIN` | Domeinnaam voor subdomeinen | Uit config |
 | `CONTAINER_APPS_ENV` | Container Apps Environment naam | Uit config |
 | `POSTGRES_SERVER` | PostgreSQL server naam | Uit config |
 | `STORAGE_ACCOUNT` | Storage account naam | Uit config |
