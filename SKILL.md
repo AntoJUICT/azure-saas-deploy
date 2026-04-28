@@ -288,26 +288,78 @@ GitHub Secrets die eenmalig per repo ingesteld worden:
 
 ### D — Nieuw project initialiseren (boilerplate)
 
-Scaffold een nieuwe Next.js app die klaar is voor deployment:
+**Vraag eerst:**
+1. `PROJECT_NAME` — projectnaam (lowercase, geen spaties, bijv. `mijn-app`)
+2. **"Wil je dit project deployen op Azure?"** — ja/nee
 
-- `package.json` — Next.js, NextAuth, Prisma, Azure Blob Storage
-- `next.config.ts` — met `output: 'standalone'`
-- `tsconfig.json`
-- `prisma/schema.prisma` — basis User + Account model voor NextAuth
-- `src/app/layout.tsx` + `src/app/page.tsx`
-- `src/app/api/auth/[...nextauth]/route.ts` — Azure AD multi-tenant
-- `src/lib/auth.ts` — NextAuth config
-- `src/lib/db.ts` — Prisma client
-- `src/lib/storage.ts` — Azure Blob Storage client
-- `.env.example`
-- `.gitignore`
+---
 
-Na scaffolding: `npm install` en `npx prisma generate`.
+**Als nee:** Scaffold een standaard Next.js app (alleen de src-bestanden, geen Dockerfile of deployment config).
+
+---
+
+**Als ja:**
+
+Verifieer eerst dat de config beschikbaar is:
+```bash
+source ~/.azure-saas-deploy/config.env || echo "Geen config — voer eerst Workflow 0 uit"
+```
+
+Maak de volledige projectstructuur aan op basis van `examples/starter-app/`:
+
+```
+<PROJECT_NAME>/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── api/auth/[...nextauth]/route.ts
+│   └── lib/
+│       ├── auth.ts
+│       ├── db.ts
+│       └── storage.ts
+├── prisma/
+│   └── schema.prisma
+├── templates/
+│   ├── infrastructure.json        ← uit REFERENCE.md
+│   └── project.json               ← uit REFERENCE.md
+├── .github/
+│   └── workflows/
+│       └── deploy.yml             ← uit REFERENCE.md, PROJECT_NAME ingevuld
+├── package.json
+├── next.config.ts
+├── tsconfig.json
+├── Dockerfile
+├── .env.example
+└── .gitignore
+```
+
+Pas na het kopiëren automatisch aan op basis van de geladen config:
+
+| Bestand | Aan te passen |
+|---------|---------------|
+| `.github/workflows/deploy.yml` | `PROJECT_NAME: <PROJECT_NAME>` |
+| `.env.example` | `AUTH_URL=https://<PROJECT_NAME>.$DOMAIN` |
+| `.env.example` | `AZURE_STORAGE_CONTAINER=<PROJECT_NAME>-files` |
+| `templates/project.json` | `domain` parameter default → `$DOMAIN` |
+
+Na scaffolding:
+```bash
+cd $PROJECT_NAME
+npm install
+npx prisma generate
+```
+
+Vraag daarna: **"Wil je nu ook de Azure resources deployen voor dit project?"**
+- **Ja** → voer direct Workflow B uit (resources aanmaken in Azure)
+- **Nee** → klaar, gebruiker kan later Workflow B uitvoeren
 
 ## Bestandsstructuur output
 
 ```
 project/
+├── src/
+├── prisma/
 ├── templates/
 │   ├── infrastructure.json
 │   └── project.json
@@ -317,4 +369,4 @@ project/
 └── Dockerfile
 ```
 
-Zie [REFERENCE.md](REFERENCE.md) voor volledige templates.
+Zie [REFERENCE.md](REFERENCE.md) voor volledige templates en [examples/starter-app/](examples/starter-app/) voor de volledige boilerplate.
